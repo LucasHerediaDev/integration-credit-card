@@ -1,0 +1,507 @@
+// server.js
+const express = require('express');
+const crypto = require('crypto');
+const axios = require('axios');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+require('dotenv').config();
+
+const app = express();
+
+// Middleware
+app.use(cors()); // Habilita CORS para todas as rotas
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Desabilita cache em desenvolvimento
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
+
+app.use(express.static('public'));
+
+// Configurações do Pagsmile
+const PAGSMILE_CONFIG = {
+  APP_ID: process.env.PAGSMILE_APP_ID,
+  SECURITY_KEY: process.env.PAGSMILE_SECURITY_KEY,
+  PUBLIC_KEY: process.env.PAGSMILE_PUBLIC_KEY,
+  ENV: process.env.PAGSMILE_ENV || 'sandbox',
+  GATEWAY_URL: process.env.PAGSMILE_ENV === 'prod' 
+    ? 'https://gateway.pagsmile.com' 
+    : 'https://gateway-test.pagsmile.com',
+  REGION_CODE: process.env.PAGSMILE_REGION_CODE || 'BRA'
+};
+
+// Função para gerar Authorization header
+function generateAuthHeader() {
+  const credentials = `${PAGSMILE_CONFIG.APP_ID}:${PAGSMILE_CONFIG.SECURITY_KEY}`;
+  return `Basic ${Buffer.from(credentials).toString('base64')}`;
+}
+
+// Função para gerar timestamp no formato esperado (yyyy-MM-dd HH:mm:ss)
+function generateTimestamp() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+// Rota principal - Página de checkout
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/public/checkout.html');
+});
+
+// Rota para obter as credenciais públicas (para o frontend)
+app.get('/api/config', (req, res) => {
+  res.json({
+    app_id: PAGSMILE_CONFIG.APP_ID,
+    public_key: PAGSMILE_CONFIG.PUBLIC_KEY,
+    env: PAGSMILE_CONFIG.ENV,
+    region_code: PAGSMILE_CONFIG.REGION_CODE
+  });
+});
+
+// Rota para criar uma ordem e obter o prepay_id
+app.post('/api/create-order', async (req, res) => {
+  try {
+    const { amount, customerInfo } = req.body;
+
+    // Gera um ID único para a transação
+    const outTradeNo = `ORDER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Determina a moeda baseada na região
+    let currency = 'BRL'; // Brasil
+    if (PAGSMILE_CONFIG.REGION_CODE === 'EUP') currency = 'EUR';
+    if (PAGSMILE_CONFIG.REGION_CODE === 'USA') currency = 'USD';
+
+    // Monta o payload para a API do Pagsmile
+    const payload = {
+      app_id: PAGSMILE_CONFIG.APP_ID,
+      out_trade_no: outTradeNo,
+      method: 'CreditCard',
+      order_amount: parseFloat(amount).toFixed(2),
+      order_currency: currency,
+      subject: 'Pagamento de Produto',
+      content: 'Descrição do produto ou serviço',
+      notify_url: `${req.protocol}://${req.get('host')}/api/webhook/payment`,
+      return_url: `${req.protocol}://${req.get('host')}/success`,
+      timestamp: generateTimestamp(),
+      timeout_express: '1d',
+      version: '2.0',
+      trade_type: 'API',
+      buyer_id: customerInfo.email || `buyer_${Date.now()}`,
+      customer: {
+        identify: {
+          type: 'CPF',
+          number: customerInfo.cpf
+        },
+        name: customerInfo.name,
+        email: customerInfo.email,
+        phone: customerInfo.phone
+      },
+      address: {
+        zip_code: customerInfo.zipCode,
+        state: customerInfo.state,
+        city: customerInfo.city,
+        street_name: customerInfo.address,
+        street_number: '1'
+      }
+    };
+
+    console.log('=== Criando ordem no Pagsmile ===');
+    console.log('URL:', `${PAGSMILE_CONFIG.GATEWAY_URL}/trade/create`);
+    console.log('Payload:', JSON.stringify(payload, null, 2));
+    console.log('Authorization:', generateAuthHeader());
+
+    // Faz a requisição para a API do Pagsmile
+    const response = await axios.post(
+      `${PAGSMILE_CONFIG.GATEWAY_URL}/trade/create`,
+      payload,
+      {
+        headers: {
+          'Authorization': generateAuthHeader(),
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log('=== Resposta do Pagsmile ===');
+    console.log(JSON.stringify(response.data, null, 2));
+
+    if (response.data.code === '10000') {
+      res.json({
+        success: true,
+        prepay_id: response.data.prepay_id,
+        trade_no: response.data.trade_no,
+        out_trade_no: outTradeNo
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: response.data.msg || 'Erro ao criar ordem',
+        sub_error: response.data.sub_msg,
+        code: response.data.code,
+        sub_code: response.data.sub_code
+      });
+    }
+
+  } catch (error) {
+    console.error('=== Erro ao criar ordem ===');
+    console.error('Status:', error.response?.status);
+    console.error('Data:', error.response?.data);
+    console.error('Message:', error.message);
+    
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao processar pagamento',
+      details: error.response?.data || error.message
+    });
+  }
+});
+
+// Rota para consultar status de uma transação
+app.get('/api/query-transaction/:tradeNo', async (req, res) => {
+  try {
+    const { tradeNo } = req.params;
+
+    const payload = {
+      app_id: PAGSMILE_CONFIG.APP_ID,
+      trade_no: tradeNo,
+      timestamp: generateTimestamp()
+    };
+
+    console.log('=== Consultando transação ===');
+    console.log('Trade No:', tradeNo);
+
+    const response = await axios.post(
+      `${PAGSMILE_CONFIG.GATEWAY_URL}/trade/query`,
+      payload,
+      {
+        headers: {
+          'Authorization': generateAuthHeader(),
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log('Status da transação:', response.data.trade_status);
+    console.log('Resposta completa:', response.data);
+
+    res.json(response.data);
+
+  } catch (error) {
+    console.error('Erro ao consultar transação:', error.response?.data || error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao consultar transação',
+      details: error.response?.data || error.message
+    });
+  }
+});
+
+// Nova rota para consultar status usando out_trade_no
+app.get('/api/query-by-order/:outTradeNo', async (req, res) => {
+  try {
+    const { outTradeNo } = req.params;
+
+    const payload = {
+      app_id: PAGSMILE_CONFIG.APP_ID,
+      out_trade_no: outTradeNo,
+      timestamp: generateTimestamp()
+    };
+
+    const response = await axios.post(
+      `${PAGSMILE_CONFIG.GATEWAY_URL}/trade/query`,
+      payload,
+      {
+        headers: {
+          'Authorization': generateAuthHeader(),
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    res.json(response.data);
+
+  } catch (error) {
+    console.error('Erro ao consultar ordem:', error.response?.data || error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao consultar ordem',
+      details: error.response?.data || error.message
+    });
+  }
+});
+
+// Webhook para receber notificações do Pagsmile
+app.post('/api/webhook/payment', async (req, res) => {
+  try {
+    console.log('=== Webhook recebido ===');
+    console.log('Headers:', req.headers);
+    console.log('Body:', req.body);
+    
+    const signature = req.headers['pagsmile-signature'];
+    const notification = req.body;
+    
+    // Aqui você processa a notificação conforme sua lógica de negócio
+    switch(notification.trade_status) {
+      case 'SUCCESS':
+        console.log(`✅ Pagamento aprovado: ${notification.trade_no}`);
+        // Atualizar banco de dados, enviar email, etc.
+        break;
+      case 'FAILED':
+        console.log(`❌ Pagamento falhou: ${notification.trade_no}`);
+        break;
+      case 'PROCESSING':
+        console.log(`⏳ Pagamento em processamento: ${notification.trade_no}`);
+        break;
+      default:
+        console.log(`❓ Status desconhecido: ${notification.trade_status}`);
+    }
+
+    // Sempre retornar success para confirmar recebimento
+    res.json({ result: 'success' });
+
+  } catch (error) {
+    console.error('Erro no webhook:', error);
+    res.status(500).json({ result: 'failed' });
+  }
+});
+
+// Proxy reverso para todas as requisições do Pagsmile SDK (resolve CORS)
+app.use('/pagsmile-proxy', async (req, res) => {
+  try {
+    // Extrai o caminho após /pagsmile-proxy
+    const path = req.path.substring(1); // Remove a barra inicial
+    
+    // Constrói a URL com query parameters
+    const queryString = Object.keys(req.query).length > 0 
+      ? '?' + new URLSearchParams(req.query).toString() 
+      : '';
+    const targetUrl = `${PAGSMILE_CONFIG.GATEWAY_URL}/${path}${queryString}`;
+    
+    console.log('=== Proxy Pagsmile ===');
+    console.log('Método:', req.method);
+    console.log('Caminho:', path);
+    console.log('Query params:', req.query);
+    console.log('URL de destino:', targetUrl);
+    console.log('Body:', req.body);
+
+    // Prepara os headers
+    const headers = {
+      'Content-Type': 'application/json',
+      // Remove headers que podem causar problemas
+      ...Object.fromEntries(
+        Object.entries(req.headers).filter(([key]) => 
+          !['host', 'connection', 'content-length', 'origin', 'referer'].includes(key.toLowerCase())
+        )
+      )
+    };
+
+    // Faz a requisição para o Pagsmile
+    const response = await axios({
+      method: req.method,
+      url: targetUrl,
+      data: req.method !== 'GET' && req.method !== 'HEAD' ? req.body : undefined,
+      headers: headers
+    });
+
+    console.log('=== Resposta do Pagsmile ===');
+    console.log('Status:', response.status);
+    console.log('Data:', response.data);
+
+    res.status(response.status).json(response.data);
+
+  } catch (error) {
+    console.error('Erro no proxy Pagsmile:', error.response?.data || error.message);
+    res.status(error.response?.status || 500).json(
+      error.response?.data || {
+        success: false,
+        status: 'failed',
+        message: error.message
+      }
+    );
+  }
+});
+
+// Rota para página de sucesso
+app.get('/success', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Pagamento Processado - Pagsmile</title>
+      <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+      <style>
+        :root {
+          --pagsmile-primary: #1E3A8A;
+          --pagsmile-secondary: #3B82F6;
+          --pagsmile-accent: #60A5FA;
+          --pagsmile-dark: #1E293B;
+          --pagsmile-success: #10B981;
+        }
+        
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body {
+          font-family: 'Poppins', sans-serif;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 100vh;
+          margin: 0;
+          background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 50%, #60A5FA 100%);
+          padding: 20px;
+        }
+        
+        .container {
+          background: white;
+          padding: 50px 40px;
+          border-radius: 20px;
+          box-shadow: 0 25px 70px rgba(30, 58, 138, 0.4);
+          text-align: center;
+          max-width: 500px;
+          width: 100%;
+          animation: fadeInUp 0.6s ease;
+        }
+        
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .logo-text {
+          font-size: 28px;
+          font-weight: 700;
+          background: linear-gradient(135deg, var(--pagsmile-primary), var(--pagsmile-secondary));
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          margin-bottom: 30px;
+        }
+        
+        .success-icon {
+          width: 80px;
+          height: 80px;
+          background: linear-gradient(135deg, var(--pagsmile-success), #059669);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 25px;
+          font-size: 40px;
+          color: white;
+          animation: scaleIn 0.5s ease 0.2s both;
+        }
+        
+        @keyframes scaleIn {
+          from {
+            transform: scale(0);
+          }
+          to {
+            transform: scale(1);
+          }
+        }
+        
+        h1 {
+          color: var(--pagsmile-dark);
+          font-size: 28px;
+          font-weight: 600;
+          margin-bottom: 15px;
+        }
+        
+        p {
+          color: #64748B;
+          font-size: 16px;
+          line-height: 1.6;
+          margin-bottom: 30px;
+        }
+        
+        .btn {
+          display: inline-block;
+          margin-top: 10px;
+          padding: 16px 40px;
+          background: linear-gradient(135deg, var(--pagsmile-primary), var(--pagsmile-secondary));
+          color: white;
+          text-decoration: none;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 15px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          transition: all 0.3s ease;
+          box-shadow: 0 8px 20px rgba(30, 58, 138, 0.3);
+        }
+        
+        .btn:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 12px 30px rgba(30, 58, 138, 0.4);
+        }
+        
+        .footer {
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 2px solid #E2E8F0;
+          color: #94A3B8;
+          font-size: 12px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="logo-text">Pagsmile</div>
+        <div class="success-icon">✓</div>
+        <h1>Pagamento em Processamento</h1>
+        <p>Sua transação está sendo processada com segurança. Você receberá uma confirmação por email em breve.</p>
+        <a href="/" class="btn">Voltar ao Checkout</a>
+        <div class="footer">
+          🔒 Transação segura processada por Pagsmile
+        </div>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
+// Endpoint de teste para verificar credenciais
+app.get('/api/test-credentials', (req, res) => {
+  res.json({
+    app_id_exists: !!PAGSMILE_CONFIG.APP_ID,
+    security_key_exists: !!PAGSMILE_CONFIG.SECURITY_KEY,
+    public_key_exists: !!PAGSMILE_CONFIG.PUBLIC_KEY,
+    env: PAGSMILE_CONFIG.ENV,
+    region: PAGSMILE_CONFIG.REGION_CODE,
+    gateway_url: PAGSMILE_CONFIG.GATEWAY_URL,
+    auth_header_sample: generateAuthHeader().substring(0, 20) + '...'
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log('=================================');
+  console.log(`✅ Servidor rodando na porta ${PORT}`);
+  console.log(`🌍 Ambiente: ${PAGSMILE_CONFIG.ENV}`);
+  console.log(`📍 Região: ${PAGSMILE_CONFIG.REGION_CODE}`);
+  console.log(`🔗 Gateway: ${PAGSMILE_CONFIG.GATEWAY_URL}`);
+  console.log('=================================');
+});

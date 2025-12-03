@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <meta name="theme-color" content="#1E3A8A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Checkout - Pagsmile</title>
+  
+  <!-- Pagsmile JavaScript Library -->
+  <script src="https://res.pagsmile.com/lib/js/pagsmile.min.js"></script>
+  
+  <!-- Google Fonts - Poppins -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --pagsmile-primary: #1E3A8A;
+      --pagsmile-secondary: #3B82F6;
+      --pagsmile-accent: #60A5FA;
+      --pagsmile-dark: #1E293B;
+      --pagsmile-light: #F8FAFC;
+      --pagsmile-success: #10B981;
+      --pagsmile-error: #EF4444;
+      --pagsmile-border: #E2E8F0;
+      --pagsmile-text: #334155;
+      --pagsmile-text-light: #64748B;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+
+    body {
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 50%, #60A5FA 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    .checkout-container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 25px 70px rgba(30, 58, 138, 0.4);
+      max-width: 550px;
+      width: 100%;
+      padding: 45px;
+      position: relative;
+      overflow: hidden;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .checkout-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, var(--pagsmile-primary), var(--pagsmile-secondary), var(--pagsmile-accent));
+    }
+
+    .logo-header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--pagsmile-border);
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .logo-text {
+      font-size: 32px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--pagsmile-primary), var(--pagsmile-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -1px;
+      flex: 1;
+    }
+
+    .lang-toggle {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--pagsmile-light);
+      border: 2px solid var(--pagsmile-border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: var(--pagsmile-text);
+      font-family: 'Poppins', sans-serif;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .lang-toggle:hover {
+      background: white;
+      border-color: var(--pagsmile-secondary);
+      transform: translateY(-50%) scale(1.05);
+      box-shadow: 0 4px 12px rgba(30, 58, 138, 0.15);
+    }
+
+    .lang-toggle:active {
+      transform: translateY(-50%) scale(0.98);
+    }
+
+    h1 {
+      color: var(--pagsmile-dark);
+      margin-bottom: 10px;
+      font-size: 26px;
+      font-weight: 600;
+    }
+
+    .subtitle {
+      color: var(--pagsmile-text-light);
+      margin-bottom: 30px;
+      font-size: 14px;
+      font-weight: 400;
+    }
+
+    .form-section {
+      margin-bottom: 30px;
+    }
+
+    .section-title {
+      color: var(--pagsmile-dark);
+      font-size: 18px;
+      margin-bottom: 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-title::before {
+      content: '';
+      width: 4px;
+      height: 20px;
+      background: linear-gradient(180deg, var(--pagsmile-primary), var(--pagsmile-secondary));
+      border-radius: 2px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      color: var(--pagsmile-text);
+      font-size: 13px;
+      margin-bottom: 8px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="number"] {
+      width: 100%;
+      padding: 13px 16px;
+      border: 2px solid var(--pagsmile-border);
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: 'Poppins', sans-serif;
+      transition: all 0.3s ease;
+      background: var(--pagsmile-light);
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      touch-action: manipulation;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--pagsmile-secondary);
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+      background: white;
+    }
+
+    /* Remove setas do input number no Chrome, Safari, Edge */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type="number"] {
+      appearance: textfield;
+      -moz-appearance: textfield;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .amount-display {
+      background: linear-gradient(135deg, var(--pagsmile-primary), var(--pagsmile-secondary));
+      padding: 25px;
+      border-radius: 15px;
+      margin-bottom: 35px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(30, 58, 138, 0.2);
+    }
+
+    .amount-label {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 13px;
+      margin-bottom: 8px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .amount-value {
+      color: white;
+      font-size: 38px;
+      font-weight: 700;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-pay {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, var(--pagsmile-primary), var(--pagsmile-secondary));
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: 'Poppins', sans-serif;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      box-shadow: 0 8px 20px rgba(30, 58, 138, 0.3);
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .btn-pay:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 30px rgba(30, 58, 138, 0.4);
+      background: linear-gradient(135deg, var(--pagsmile-secondary), var(--pagsmile-accent));
+    }
+
+    .btn-pay:active {
+      transform: translateY(-1px);
+      transition-duration: 0.1s;
+    }
+
+    .btn-pay:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Melhoria para touch em mobile */
+    @media (hover: none) and (pointer: coarse) {
+      .btn-pay:hover {
+        transform: none;
+      }
+      
+      .btn-pay:active {
+        transform: scale(0.98);
+        opacity: 0.9;
+      }
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .loading.active {
+      display: block;
+    }
+
+    .spinner {
+      border: 3px solid var(--pagsmile-border);
+      border-top: 3px solid var(--pagsmile-secondary);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error-message {
+      background: #FEE2E2;
+      color: var(--pagsmile-error);
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin-top: 15px;
+      display: none;
+      border-left: 4px solid var(--pagsmile-error);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .error-message.active {
+      display: block;
+      animation: slideIn 0.3s ease;
+    }
+
+    .success-message {
+      background: #D1FAE5;
+      color: var(--pagsmile-success);
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin-top: 15px;
+      display: none;
+      border-left: 4px solid var(--pagsmile-success);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .success-message.active {
+      display: block;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card-icons {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      opacity: 0.8;
+    }
+
+    .card-icon {
+      width: 45px;
+      height: 28px;
+      background: linear-gradient(135deg, var(--pagsmile-light), white);
+      border: 2px solid var(--pagsmile-border);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--pagsmile-text);
+      transition: all 0.2s ease;
+    }
+
+    .card-icon:hover {
+      transform: translateY(-2px);
+      border-color: var(--pagsmile-secondary);
+      box-shadow: 0 4px 10px rgba(30, 58, 138, 0.15);
+    }
+
+    .secure-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 20px;
+      padding: 12px;
+      background: var(--pagsmile-light);
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--pagsmile-text-light);
+    }
+
+    .secure-badge::before {
+      content: '🔒';
+      font-size: 16px;
+    }
+
+    .footer-text {
+      text-align: center;
+      margin-top: 25px;
+      padding-top: 20px;
+      border-top: 2px solid var(--pagsmile-border);
+      color: var(--pagsmile-text-light);
+      font-size: 12px;
+    }
+
+    .footer-text strong {
+      color: var(--pagsmile-secondary);
+      font-weight: 600;
+    }
+
+    .checkout-container {
+      animation: fadeInUp 0.5s ease;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    input::placeholder {
+      color: var(--pagsmile-text-light);
+      opacity: 0.6;
+    }
+
+    input[type="text"]:hover,
+    input[type="email"]:hover,
+    input[type="number"]:hover {
+      border-color: var(--pagsmile-accent);
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 15px;
+      }
+
+      .checkout-container {
+        padding: 30px 25px;
+        max-width: 100%;
+      }
+
+      .logo-text {
+        font-size: 26px;
+      }
+
+      h1 {
+        font-size: 22px;
+      }
+
+      .subtitle {
+        font-size: 13px;
+      }
+
+      .amount-value {
+        font-size: 32px;
+      }
+
+      .section-title {
+        font-size: 16px;
+      }
+
+      .row {
+        grid-template-columns: 1fr;
+        gap: 0;
+      }
+
+      .form-group {
+        margin-bottom: 18px;
+      }
+
+      input[type="text"],
+      input[type="email"],
+      input[type="number"] {
+        padding: 12px 14px;
+        font-size: 16px;
+      }
+
+      .btn-pay {
+        padding: 16px;
+        font-size: 15px;
+      }
+
+      .card-icons {
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .lang-toggle {
+        font-size: 12px;
+        padding: 6px 10px;
+      }
+
+      .logo-header {
+        padding-bottom: 15px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 10px;
+      }
+
+      .checkout-container {
+        padding: 25px 20px;
+        border-radius: 15px;
+      }
+
+      .logo-header {
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+      }
+
+      .logo-text {
+        font-size: 24px;
+      }
+
+      h1 {
+        font-size: 20px;
+        margin-bottom: 8px;
+      }
+
+      .subtitle {
+        font-size: 12px;
+        margin-bottom: 20px;
+      }
+
+      .amount-display {
+        padding: 20px;
+        margin-bottom: 25px;
+      }
+
+      .amount-label {
+        font-size: 11px;
+      }
+
+      .amount-value {
+        font-size: 28px;
+      }
+
+      .form-section {
+        margin-bottom: 25px;
+      }
+
+      .section-title {
+        font-size: 15px;
+        margin-bottom: 15px;
+      }
+
+      .section-title::before {
+        width: 3px;
+        height: 16px;
+      }
+
+      label {
+        font-size: 12px;
+        margin-bottom: 6px;
+      }
+
+      input[type="text"],
+      input[type="email"],
+      input[type="number"] {
+        padding: 11px 13px;
+        font-size: 16px;
+        border-radius: 8px;
+      }
+
+      .btn-pay {
+        padding: 15px;
+        font-size: 14px;
+        border-radius: 10px;
+      }
+
+      .loading p {
+        font-size: 13px;
+      }
+
+      .error-message,
+      .success-message {
+        padding: 12px 14px;
+        font-size: 13px;
+      }
+
+      .secure-badge {
+        padding: 10px;
+        font-size: 11px;
+        margin-top: 15px;
+      }
+
+      .footer-text {
+        font-size: 11px;
+        margin-top: 20px;
+        padding-top: 15px;
+      }
+
+      #query-section {
+        padding: 15px !important;
+        margin-top: 20px !important;
+      }
+
+      #query-section p {
+        font-size: 12px !important;
+      }
+
+      #query-section button {
+        font-size: 13px !important;
+        padding: 14px !important;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .checkout-container {
+        padding: 20px 15px;
+      }
+
+      .logo-text {
+        font-size: 22px;
+      }
+
+      h1 {
+        font-size: 18px;
+      }
+
+      .amount-value {
+        font-size: 24px;
+      }
+
+      .card-icon {
+        width: 40px;
+        height: 26px;
+        font-size: 8px;
+      }
+    }
+
+    @media (max-height: 600px) and (orientation: landscape) {
+      body {
+        padding: 10px;
+      }
+
+      .checkout-container {
+        margin: 10px auto;
+      }
+
+      .logo-header {
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+      }
+
+      .amount-display {
+        padding: 15px;
+        margin-bottom: 20px;
+      }
+
+      .form-section {
+        margin-bottom: 20px;
+      }
+
+      .form-group {
+        margin-bottom: 12px;
+      }
+    }
+
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .checkout-container {
+        max-width: 650px;
+        padding: 40px 35px;
+      }
+
+      .row {
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
+    }
+
+    @media (min-width: 1025px) and (max-width: 1366px) {
+      body {
+        padding: 25px;
+      }
+
+      .checkout-container {
+        max-width: 650px;
+        padding: 45px 40px;
+      }
+
+      .row {
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
+
+      h1 {
+        font-size: 28px;
+      }
+
+      .amount-value {
+        font-size: 40px;
+      }
+
+      input[type="text"],
+      input[type="email"],
+      input[type="number"] {
+        font-size: 15px;
+      }
+
+      .lang-toggle {
+        font-size: 14px;
+        padding: 9px 14px;
+      }
+    }
+
+    @media (min-width: 1367px) and (max-width: 1920px) {
+      body {
+        padding: 30px;
+      }
+
+      .checkout-container {
+        max-width: 700px;
+        padding: 50px 45px;
+      }
+
+      .row {
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+
+      h1 {
+        font-size: 30px;
+      }
+
+      .section-title {
+        font-size: 19px;
+      }
+
+      label {
+        font-size: 14px;
+      }
+
+      input[type="text"],
+      input[type="email"],
+      input[type="number"] {
+        font-size: 15px;
+        padding: 14px 17px;
+      }
+    }
+
+    @media (min-width: 1921px) {
+      body {
+        padding: 40px;
+      }
+
+      .checkout-container {
+        max-width: 750px;
+        padding: 55px 50px;
+      }
+
+      .logo-text {
+        font-size: 36px;
+      }
+
+      h1 {
+        font-size: 32px;
+      }
+
+      .amount-value {
+        font-size: 44px;
+      }
+
+      .section-title {
+        font-size: 20px;
+      }
+
+      label {
+        font-size: 15px;
+      }
+
+      input[type="text"],
+      input[type="email"],
+      input[type="number"] {
+        font-size: 16px;
+        padding: 15px 18px;
+      }
+
+      .btn-pay {
+        padding: 20px;
+        font-size: 17px;
+      }
+    }
+
+    @media (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
+      .checkout-container {
+        max-width: 90%;
+      }
+
+      .row {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+      input[type="text"],
+      input[type="email"],
+      input[type="number"] {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="checkout-container">
+    <div class="logo-header">
+      <div class="logo-text" data-i18n="logo">Pagsmile</div>
+      <button type="button" id="lang-toggle" class="lang-toggle" onclick="translatePage(currentLang === 'pt' ? 'en' : 'pt')">
+        🇺🇸 EN
+      </button>
+    </div>
+    
+    <h1 data-i18n="title">Finalizar Pagamento</h1>
+    <p class="subtitle" data-i18n="subtitle">Preencha os dados abaixo para concluir sua compra de forma segura</p>
+
+    <div class="amount-display">
+      <div class="amount-label" data-i18n="amountLabel">Valor Total</div>
+      <div class="amount-value">R$ <span id="display-amount">1,00</span></div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title" data-i18n="personalInfo">Informações Pessoais</div>
+      
+      <div class="form-group">
+        <label for="customer-name" data-i18n="fullName">Nome Completo</label>
+        <input type="text" id="customer-name" data-i18n="fullNamePlaceholder" placeholder="João da Silva" required>
+      </div>
+
+      <div class="form-group">
+        <label for="customer-email" data-i18n="email">Email</label>
+        <input type="email" id="customer-email" data-i18n="emailPlaceholder" placeholder="joao@exemplo.com" required>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label for="customer-phone" data-i18n="phone">Telefone</label>
+          <input type="text" id="customer-phone" data-i18n="phonePlaceholder" placeholder="11999999999" required>
+        </div>
+
+        <div class="form-group">
+          <label for="customer-cpf" data-i18n="cpf">CPF</label>
+          <input type="text" id="customer-cpf" data-i18n="cpfPlaceholder" placeholder="000.000.000-00" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="customer-zip" data-i18n="zipCode">CEP</label>
+        <input type="text" id="customer-zip" data-i18n="zipCodePlaceholder" placeholder="01001-000" required>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label for="customer-city" data-i18n="city">Cidade</label>
+          <input type="text" id="customer-city" data-i18n="cityPlaceholder" placeholder="São Paulo" required>
+        </div>
+
+        <div class="form-group">
+          <label for="customer-state" data-i18n="state">Estado (UF)</label>
+          <input type="text" id="customer-state" data-i18n="statePlaceholder" placeholder="SP" maxlength="2" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="customer-address" data-i18n="address">Endereço</label>
+        <input type="text" id="customer-address" data-i18n="addressPlaceholder" placeholder="Rua Example, 123" required>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title" data-i18n="cardInfo">Dados do Cartão</div>
+      
+      <div class="form-group">
+        <label for="card-name" data-i18n="cardName">Nome no Cartão</label>
+        <input type="text" id="card-name" data-i18n="cardNamePlaceholder" placeholder="Nome como está no cartão" autocomplete="off" required>
+      </div>
+
+      <div class="form-group">
+        <label for="card-number" data-i18n="cardNumber">Número do Cartão</label>
+        <input type="text" id="card-number" data-i18n="cardNumberPlaceholder" placeholder="0000 0000 0000 0000" maxlength="19" required>
+        <div class="card-icons">
+          <div class="card-icon">VISA</div>
+          <div class="card-icon">MASTER</div>
+          <div class="card-icon">ELO</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label for="exp-month" data-i18n="expMonth">Mês</label>
+          <input type="text" id="exp-month" data-i18n="expMonthPlaceholder" placeholder="12" maxlength="2" autocomplete="off" required>
+        </div>
+
+        <div class="form-group">
+          <label for="exp-year" data-i18n="expYear">Ano</label>
+          <input type="text" id="exp-year" data-i18n="expYearPlaceholder" placeholder="2028" maxlength="4" autocomplete="off" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="card-cvv" data-i18n="cvv">CVV</label>
+        <input type="text" id="card-cvv" data-i18n="cvvPlaceholder" placeholder="123" maxlength="4" autocomplete="off" required>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="order-amount" data-i18n="orderAmount">Valor do Pedido (R$)</label>
+      <input type="number" id="order-amount" value="1" min="1" step="0.01">
+    </div>
+
+    <button type="button" id="submit-pay" class="btn-pay" data-i18n="payButton">
+      Pagar Agora
+    </button>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p style="margin-top: 10px; color: #666;" data-i18n="processing">Processando pagamento...</p>
+    </div>
+
+    <div class="error-message" id="error-message"></div>
+    <div class="success-message" id="success-message"></div>
+
+    <div id="query-section" style="display: none; margin-top: 25px; padding: 20px; background: var(--pagsmile-light); border-radius: 12px; border: 2px solid var(--pagsmile-border);">
+      <p style="color: var(--pagsmile-text); font-size: 14px; margin-bottom: 12px; font-weight: 500;">
+        <strong style="color: var(--pagsmile-dark);" data-i18n="transactionId">ID da Transação:</strong> <span id="trade-no-display" style="color: var(--pagsmile-secondary); font-family: monospace;"></span>
+      </p>
+      <button type="button" id="query-status" class="btn-pay" style="background: linear-gradient(135deg, var(--pagsmile-success), #059669); margin-top: 10px;" data-i18n="queryStatus">
+        Consultar Status da Transação
+      </button>
+      <div id="status-result" style="margin-top: 15px; font-size: 14px;"></div>
+    </div>
+
+    <div class="secure-badge" data-i18n="secureBadge">
+      Pagamento seguro e criptografado
+    </div>
+
+    <div class="footer-text">
+      <span data-i18n="footer">Processado por</span> <strong data-i18n="footerBrand">Pagsmile</strong> <span data-i18n="footerText">Payment Gateway</span>
+    </div>
+  </div>
+
+  <script>
+    const translations = {
+      pt: {
+        logo: 'Pagsmile',
+        title: 'Finalizar Pagamento',
+        subtitle: 'Preencha os dados abaixo para concluir sua compra de forma segura',
+        amountLabel: 'Valor Total',
+        personalInfo: 'Informações Pessoais',
+        fullName: 'Nome Completo',
+        fullNamePlaceholder: 'João da Silva',
+        email: 'Email',
+        emailPlaceholder: 'joao@exemplo.com',
+        phone: 'Telefone',
+        phonePlaceholder: '11999999999',
+        cpf: 'CPF',
+        cpfPlaceholder: '000.000.000-00',
+        zipCode: 'CEP',
+        zipCodePlaceholder: '01001-000',
+        city: 'Cidade',
+        cityPlaceholder: 'São Paulo',
+        state: 'Estado (UF)',
+        statePlaceholder: 'SP',
+        address: 'Endereço',
+        addressPlaceholder: 'Rua Example, 123',
+        cardInfo: 'Dados do Cartão',
+        cardName: 'Nome no Cartão',
+        cardNamePlaceholder: 'Nome como está no cartão',
+        cardNumber: 'Número do Cartão',
+        cardNumberPlaceholder: '0000 0000 0000 0000',
+        expMonth: 'Mês',
+        expMonthPlaceholder: '12',
+        expYear: 'Ano',
+        expYearPlaceholder: '2028',
+        cvv: 'CVV',
+        cvvPlaceholder: '123',
+        orderAmount: 'Valor do Pedido (R$)',
+        payButton: 'Pagar Agora',
+        processing: 'Processando pagamento...',
+        transactionId: 'ID da Transação:',
+        queryStatus: 'Consultar Status da Transação',
+        secureBadge: 'Pagamento seguro e criptografado',
+        footer: 'Processado por',
+        footerBrand: 'Pagsmile',
+        footerText: 'Payment Gateway',
+        fillAllFields: 'Por favor, preencha todos os campos de informações pessoais',
+        invalidCPF: 'CPF inválido',
+        fillCardFields: 'Por favor, preencha todos os dados do cartão',
+        invalidCardNumber: 'Número do cartão inválido',
+        paymentError: 'Erro ao processar pagamento. Tente novamente.'
+      },
+      en: {
+        logo: 'Pagsmile',
+        title: 'Complete Payment',
+        subtitle: 'Fill in the details below to complete your purchase securely',
+        amountLabel: 'Total Amount',
+        personalInfo: 'Personal Information',
+        fullName: 'Full Name',
+        fullNamePlaceholder: 'John Smith',
+        email: 'Email',
+        emailPlaceholder: 'john@example.com',
+        phone: 'Phone',
+        phonePlaceholder: '11999999999',
+        cpf: 'CPF/Tax ID',
+        cpfPlaceholder: '000.000.000-00',
+        zipCode: 'ZIP Code',
+        zipCodePlaceholder: '01001-000',
+        city: 'City',
+        cityPlaceholder: 'São Paulo',
+        state: 'State',
+        statePlaceholder: 'SP',
+        address: 'Address',
+        addressPlaceholder: 'Street Example, 123',
+        cardInfo: 'Card Information',
+        cardName: 'Name on Card',
+        cardNamePlaceholder: 'Name as shown on card',
+        cardNumber: 'Card Number',
+        cardNumberPlaceholder: '0000 0000 0000 0000',
+        expMonth: 'Month',
+        expMonthPlaceholder: '12',
+        expYear: 'Year',
+        expYearPlaceholder: '2028',
+        cvv: 'CVV',
+        cvvPlaceholder: '123',
+        orderAmount: 'Order Amount (R$)',
+        payButton: 'Pay Now',
+        processing: 'Processing payment...',
+        transactionId: 'Transaction ID:',
+        queryStatus: 'Check Transaction Status',
+        secureBadge: 'Secure and encrypted payment',
+        footer: 'Processed by',
+        footerBrand: 'Pagsmile',
+        footerText: 'Payment Gateway',
+        fillAllFields: 'Please fill in all personal information fields',
+        invalidCPF: 'Invalid CPF/Tax ID',
+        fillCardFields: 'Please fill in all card details',
+        invalidCardNumber: 'Invalid card number',
+        paymentError: 'Error processing payment. Please try again.'
+      }
+    };
+
+    let currentLang = navigator.language.startsWith('en') ? 'en' : 'pt';
+
+    function translatePage(lang) {
+      currentLang = lang;
+      const t = translations[lang];
+
+      document.querySelectorAll('[data-i18n]').forEach(element => {
+        const key = element.getAttribute('data-i18n');
+        if (t[key]) {
+          if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+            element.placeholder = t[key];
+          } else {
+            element.textContent = t[key];
+          }
+        }
+      });
+
+      document.getElementById('lang-toggle').textContent = lang === 'pt' ? '🇺🇸 EN' : '🇧🇷 PT';
+      localStorage.setItem('preferredLanguage', lang);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedLang = localStorage.getItem('preferredLanguage');
+      if (savedLang) {
+        currentLang = savedLang;
+      }
+      translatePage(currentLang);
+    });
+
+    document.getElementById('order-amount').addEventListener('input', function(e) {
+      const value = parseFloat(e.target.value) || 0;
+      document.getElementById('display-amount').textContent = value.toFixed(2).replace('.', ',');
+    });
+
+    document.getElementById('card-number').addEventListener('input', function(e) {
+      let value = e.target.value.replace(/\s/g, '');
+      let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+      e.target.value = formattedValue;
+    });
+
+    document.getElementById('customer-cpf').addEventListener('input', function(e) {
+      let value = e.target.value.replace(/\D/g, '');
+      if (value.length <= 11) {
+        value = value.replace(/(\d{3})(\d)/, '$1.$2');
+        value = value.replace(/(\d{3})(\d)/, '$1.$2');
+        value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+      }
+      e.target.value = value;
+    });
+
+    document.getElementById('customer-zip').addEventListener('input', function(e) {
+      let value = e.target.value.replace(/\D/g, '');
+      if (value.length <= 8) {
+        value = value.replace(/(\d{5})(\d)/, '$1-$2');
+      }
+      e.target.value = value;
+    });
+
+    let pagsmilesClient = null;
+    let originalFetch = null;
+    let originalXHROpen = null;
+
+    async function initializePayment() {
+      try {
+        // Coleta informações do cliente
+        const customerInfo = {
+          name: document.getElementById('customer-name').value,
+          email: document.getElementById('customer-email').value,
+          phone: document.getElementById('customer-phone').value.replace(/\D/g, ''),
+          cpf: document.getElementById('customer-cpf').value.replace(/\D/g, ''),
+          zipCode: document.getElementById('customer-zip').value.replace(/\D/g, ''),
+          city: document.getElementById('customer-city').value,
+          state: document.getElementById('customer-state').value.toUpperCase(),
+          address: document.getElementById('customer-address').value
+        };
+
+        const amount = document.getElementById('order-amount').value;
+
+        // Validações básicas
+        if (!customerInfo.name || !customerInfo.email || !customerInfo.phone || !customerInfo.cpf || !customerInfo.zipCode || !customerInfo.city || !customerInfo.state || !customerInfo.address) {
+          showError(translations[currentLang].fillAllFields);
+          return;
+        }
+
+        if (customerInfo.cpf.length !== 11) {
+          showError(translations[currentLang].invalidCPF);
+          return;
+        }
+
+        // Validação dos campos do cartão
+        const cardName = document.getElementById('card-name').value;
+        const cardNumber = document.getElementById('card-number').value.replace(/\s/g, '');
+        const expMonth = document.getElementById('exp-month').value;
+        const expYear = document.getElementById('exp-year').value;
+        const cvv = document.getElementById('card-cvv').value;
+
+        if (!cardName || !cardNumber || !expMonth || !expYear || !cvv) {
+          showError(translations[currentLang].fillCardFields);
+          return;
+        }
+
+        if (cardNumber.length < 13 || cardNumber.length > 19) {
+          showError(translations[currentLang].invalidCardNumber);
+          return;
+        }
+
+        // Mostra loading
+        document.getElementById('loading').classList.add('active');
+        document.getElementById('submit-pay').disabled = true;
+
+        const configResponse = await fetch('/api/config');
+        const config = await configResponse.json();
+
+        const orderResponse = await fetch('/api/create-order', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            amount: amount,
+            customerInfo: customerInfo
+          })
+        });
+
+        const orderData = await orderResponse.json();
+
+        if (!orderData.success) {
+          throw new Error(orderData.error || 'Erro ao criar ordem');
+        }
+
+        document.getElementById('query-section').style.display = 'block';
+        document.getElementById('trade-no-display').textContent = orderData.trade_no;
+
+        originalXHROpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+          if (typeof url === 'string' && (url.includes('gateway.pagsmile.com') || url.includes('gateway-test.pagsmile.com'))) {
+            const urlObj = new URL(url);
+            const path = urlObj.pathname.substring(1);
+            const queryString = urlObj.search;
+            const newUrl = `/pagsmile-proxy/${path}${queryString}`;
+            return originalXHROpen.call(this, method, newUrl, ...rest);
+          }
+          return originalXHROpen.call(this, method, url, ...rest);
+        };
+
+        originalFetch = window.fetch;
+        window.fetch = function(...args) {
+          let [url, options] = args;
+          
+          if (typeof url === 'string' && (url.includes('gateway.pagsmile.com') || url.includes('gateway-test.pagsmile.com'))) {
+            const urlObj = new URL(url);
+            const path = urlObj.pathname.substring(1);
+            const queryString = urlObj.search;
+            url = `/pagsmile-proxy/${path}${queryString}`;
+          }
+          
+          return originalFetch(url, options);
+        };
+
+        // Inicializa o Pagsmile com o prepay_id obtido
+        const clientInstance = await Pagsmile.setPublishableKey({
+          app_id: config.app_id,
+          public_key: config.public_key,
+          env: config.env,
+          region_code: config.region_code,
+          prepay_id: orderData.prepay_id,
+          fields: {
+            card_name: {
+              id_selector: "card-name",
+            },
+            card_number: {
+              id_selector: "card-number",
+            },
+            expiration_month: {
+              id_selector: "exp-month",
+            },
+            expiration_year: {
+              id_selector: "exp-year",
+            },
+            cvv: {
+              id_selector: "card-cvv",
+            }
+          }
+        });
+
+        const paymentData = {
+          phone: customerInfo.phone,
+          email: customerInfo.email,
+          postal_code: customerInfo.zipCode,
+          payer_id: customerInfo.cpf,
+          address: {
+            country_code: 'BRA',
+            zip_code: customerInfo.zipCode,
+            state: customerInfo.state,
+            city: customerInfo.city,
+            street: customerInfo.address
+          }
+        };
+        
+        const paymentResult = await clientInstance.createOrder(paymentData);
+
+        if (paymentResult.status === 'success') {
+          showSuccess('Pagamento processado com sucesso! Redirecionando...');
+          
+          if (orderData.trade_no) {
+            sessionStorage.setItem('last_trade_no', orderData.trade_no);
+          }
+          
+          setTimeout(() => {
+            window.location.href = '/success';
+          }, 2000);
+        } else if (paymentResult.status === 'failed') {
+          let errorMsg = 'Pagamento falhou';
+          
+          if (paymentResult.message) {
+            errorMsg += ': ' + paymentResult.message;
+          }
+          
+          if (paymentResult.threeds?.description) {
+            errorMsg += ' - ' + paymentResult.threeds.description;
+          }
+          
+          if (paymentResult.threeds?.code) {
+            errorMsg += ' (Código: ' + paymentResult.threeds.code + ')';
+          }
+          
+          throw new Error(errorMsg);
+        } else {
+          throw new Error('Status desconhecido: ' + paymentResult.status);
+        }
+
+      } catch (error) {
+        showError(error.message || translations[currentLang].paymentError);
+      } finally {
+        if (originalFetch) {
+          window.fetch = originalFetch;
+          originalFetch = null;
+        }
+        if (originalXHROpen) {
+          XMLHttpRequest.prototype.open = originalXHROpen;
+          originalXHROpen = null;
+        }
+        
+        document.getElementById('loading').classList.remove('active');
+        document.getElementById('submit-pay').disabled = false;
+      }
+    }
+
+    function showError(message) {
+      const errorEl = document.getElementById('error-message');
+      errorEl.textContent = message;
+      errorEl.classList.add('active');
+      
+      setTimeout(() => {
+        errorEl.classList.remove('active');
+      }, 5000);
+    }
+
+    function showSuccess(message) {
+      const successEl = document.getElementById('success-message');
+      successEl.textContent = message;
+      successEl.classList.add('active');
+    }
+
+    // Event listener para o botão de pagamento
+    document.getElementById('submit-pay').addEventListener('click', initializePayment);
+
+    // Event listener para consultar status
+    document.getElementById('query-status').addEventListener('click', async function() {
+      const tradeNo = document.getElementById('trade-no-display').textContent;
+      if (!tradeNo) return;
+
+      try {
+        const statusResult = document.getElementById('status-result');
+        statusResult.innerHTML = '<div style="color: #666;">Consultando...</div>';
+
+        const response = await fetch(`/api/query-transaction/${tradeNo}`);
+        const data = await response.json();
+
+        let statusHtml = '<div style="padding: 10px; background: white; border-radius: 5px;">';
+        statusHtml += `<p><strong>Status:</strong> <span style="color: ${getStatusColor(data.trade_status)}">${data.trade_status || 'N/A'}</span></p>`;
+        statusHtml += `<p><strong>Valor:</strong> ${data.order_amount || 'N/A'} ${data.order_currency || ''}</p>`;
+        statusHtml += `<p><strong>Método:</strong> ${data.method || 'N/A'}</p>`;
+        
+        if (data.msg) {
+          statusHtml += `<p><strong>Mensagem:</strong> ${data.msg}</p>`;
+        }
+        
+        if (data.sub_msg) {
+          statusHtml += `<p style="color: #c33;"><strong>Detalhes:</strong> ${data.sub_msg}</p>`;
+        }
+
+        statusHtml += '</div>';
+        statusResult.innerHTML = statusHtml;
+
+      } catch (error) {
+        document.getElementById('status-result').innerHTML = 
+          `<div style="color: #c33;">Erro ao consultar: ${error.message}</div>`;
+      }
+    });
+
+    function getStatusColor(status) {
+      const colors = {
+        'SUCCESS': '#28a745',
+        'PROCESSING': '#ffc107',
+        'FAILED': '#dc3545',
+        'INITIAL': '#6c757d',
+        'CANCELLED': '#6c757d'
+      };
+      return colors[status] || '#666';
+    }
+  </script>
+</body>
+</html>
