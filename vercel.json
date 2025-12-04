@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "pagsmile-express-backend.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/pagsmile-express-backend.js"
+    },
+    {
+      "src": "/pagsmile-proxy/(.*)",
+      "dest": "/pagsmile-express-backend.js"
+    },
+    {
+      "src": "/success",
+      "dest": "/pagsmile-express-backend.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/pagsmile-express-backend.js"
+    }
+  ]
+}
+
