@@ -279,49 +279,56 @@ app.post('/api/webhook/payment', async (req, res) => {
 // Proxy reverso para todas as requisições do Pagsmile SDK (resolve CORS)
 app.use('/pagsmile-proxy', async (req, res) => {
   try {
-    // Extrai o caminho após /pagsmile-proxy
-    const path = req.path.substring(1); // Remove a barra inicial
+    // Extrai o caminho após /pagsmile-proxy (ex: api/trade/submit-card-pay)
+    const path = req.path.substring(1);
     
-    // Constrói a URL com query parameters
-    const queryString = Object.keys(req.query).length > 0 
-      ? '?' + new URLSearchParams(req.query).toString() 
-      : '';
-    const targetUrl = `${PAGSMILE_CONFIG.GATEWAY_URL}/${path}${queryString}`;
+    // Mescla query params no body para endpoints POST (especialmente submit-card-pay)
+    let requestBody = req.body || {};
+    
+    // Se houver query params, adiciona ao body
+    if (Object.keys(req.query).length > 0) {
+      requestBody = { ...requestBody, ...req.query };
+    }
+    
+    // URL final (SEM query params - tudo vai no body)
+    const targetUrl = `${PAGSMILE_CONFIG.GATEWAY_URL}/${path}`;
     
     console.log('=== Proxy Pagsmile ===');
     console.log('Método:', req.method);
-    console.log('Caminho:', path);
-    console.log('Query params:', req.query);
+    console.log('Caminho original:', req.path);
+    console.log('Caminho extraído:', path);
     console.log('URL de destino:', targetUrl);
-    console.log('Body:', req.body);
+    console.log('Body mesclado:', JSON.stringify(requestBody, null, 2));
 
-    // Prepara os headers
+    // Headers limpos
     const headers = {
       'Content-Type': 'application/json',
-      // Remove headers que podem causar problemas
-      ...Object.fromEntries(
-        Object.entries(req.headers).filter(([key]) => 
-          !['host', 'connection', 'content-length', 'origin', 'referer'].includes(key.toLowerCase())
-        )
-      )
+      'Accept': 'application/json'
     };
 
     // Faz a requisição para o Pagsmile
     const response = await axios({
       method: req.method,
       url: targetUrl,
-      data: req.method !== 'GET' && req.method !== 'HEAD' ? req.body : undefined,
-      headers: headers
+      data: req.method !== 'GET' && req.method !== 'HEAD' ? requestBody : undefined,
+      headers: headers,
+      validateStatus: () => true // Aceita qualquer status para debug
     });
 
     console.log('=== Resposta do Pagsmile ===');
     console.log('Status:', response.status);
-    console.log('Data:', response.data);
+    console.log('Headers:', response.headers);
+    console.log('Data:', JSON.stringify(response.data, null, 2));
 
+    // Retorna a resposta do Pagsmile
     res.status(response.status).json(response.data);
 
   } catch (error) {
-    console.error('Erro no proxy Pagsmile:', error.response?.data || error.message);
+    console.error('=== Erro no Proxy ===');
+    console.error('Status:', error.response?.status);
+    console.error('Data:', error.response?.data);
+    console.error('Message:', error.message);
+    
     res.status(error.response?.status || 500).json(
       error.response?.data || {
         success: false,

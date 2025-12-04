@@ -1208,26 +1208,40 @@
         document.getElementById('trade-no-display').textContent = orderData.trade_no;
 
         originalXHROpen = XMLHttpRequest.prototype.open;
+        const originalXHRSend = XMLHttpRequest.prototype.send;
+        
         XMLHttpRequest.prototype.open = function(method, url, ...rest) {
           if (typeof url === 'string' && (url.includes('gateway.pagsmile.com') || url.includes('gateway-test.pagsmile.com'))) {
             const urlObj = new URL(url);
             const path = urlObj.pathname.substring(1);
+            
+            // Redireciona para o proxy, mantendo query params na URL
+            // O proxy vai mesclar query params + body automaticamente
             const queryString = urlObj.search;
             const newUrl = `/pagsmile-proxy/${path}${queryString}`;
+            
+            console.log('[XHR Interceptor] Redirecionando:', url, '→', newUrl);
             return originalXHROpen.call(this, method, newUrl, ...rest);
           }
           return originalXHROpen.call(this, method, url, ...rest);
         };
 
+        XMLHttpRequest.prototype.send = originalXHRSend;
+
         originalFetch = window.fetch;
         window.fetch = function(...args) {
-          let [url, options] = args;
+          let [url, options = {}] = args;
           
           if (typeof url === 'string' && (url.includes('gateway.pagsmile.com') || url.includes('gateway-test.pagsmile.com'))) {
             const urlObj = new URL(url);
             const path = urlObj.pathname.substring(1);
             const queryString = urlObj.search;
+            
+            // Redireciona para o proxy, mantendo query params na URL
+            // O proxy vai mesclar query params + body automaticamente
             url = `/pagsmile-proxy/${path}${queryString}`;
+            
+            console.log('[Fetch Interceptor] Redirecionando:', urlObj.href, '→', url);
           }
           
           return originalFetch(url, options);
