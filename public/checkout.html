@@ -1215,18 +1215,41 @@
             const urlObj = new URL(url);
             const path = urlObj.pathname.substring(1);
             
-            // Redireciona para o proxy, mantendo query params na URL
-            // O proxy vai mesclar query params + body automaticamente
+            // Para submit-card-pay, armazenar query params para mesclar no body
+            if (path.includes('submit-card-pay') && urlObj.search) {
+              this._queryParamsToMerge = urlObj.search;
+              const newUrl = `/pagsmile-proxy/${path}`;
+              console.log('[XHR Interceptor] Redirecionando (sem query):', url, '→', newUrl);
+              return originalXHROpen.call(this, method, newUrl, ...rest);
+            }
+            
+            // Para outras rotas, manter query params na URL
             const queryString = urlObj.search;
             const newUrl = `/pagsmile-proxy/${path}${queryString}`;
-            
             console.log('[XHR Interceptor] Redirecionando:', url, '→', newUrl);
             return originalXHROpen.call(this, method, newUrl, ...rest);
           }
           return originalXHROpen.call(this, method, url, ...rest);
         };
 
-        XMLHttpRequest.prototype.send = originalXHRSend;
+        XMLHttpRequest.prototype.send = function(body) {
+          // Se temos query params para mesclar (submit-card-pay)
+          if (this._queryParamsToMerge) {
+            const params = new URLSearchParams(this._queryParamsToMerge.substring(1));
+            const bodyObj = body ? JSON.parse(body) : {};
+            
+            // Adicionar query params ao body
+            params.forEach((value, key) => {
+              bodyObj[key] = value;
+            });
+            
+            console.log('[XHR Interceptor] Body mesclado:', bodyObj);
+            body = JSON.stringify(bodyObj);
+            delete this._queryParamsToMerge;
+          }
+          
+          return originalXHRSend.call(this, body);
+        };
 
         originalFetch = window.fetch;
         window.fetch = function(...args) {
@@ -1235,13 +1258,31 @@
           if (typeof url === 'string' && (url.includes('gateway.pagsmile.com') || url.includes('gateway-test.pagsmile.com'))) {
             const urlObj = new URL(url);
             const path = urlObj.pathname.substring(1);
-            const queryString = urlObj.search;
             
-            // Redireciona para o proxy, mantendo query params na URL
-            // O proxy vai mesclar query params + body automaticamente
-            url = `/pagsmile-proxy/${path}${queryString}`;
-            
-            console.log('[Fetch Interceptor] Redirecionando:', urlObj.href, '→', url);
+            // Para submit-card-pay, mesclar query params no body
+            if (path.includes('submit-card-pay') && urlObj.search) {
+              const params = new URLSearchParams(urlObj.search.substring(1));
+              const bodyObj = options.body ? JSON.parse(options.body) : {};
+              
+              // Adicionar query params ao body
+              params.forEach((value, key) => {
+                bodyObj[key] = value;
+              });
+              
+              options.body = JSON.stringify(bodyObj);
+              options.headers = {
+                ...options.headers,
+                'Content-Type': 'application/json'
+              };
+              
+              url = `/pagsmile-proxy/${path}`;
+              console.log('[Fetch Interceptor] Redirecionando (body mesclado):', urlObj.href, '→', url);
+            } else {
+              // Para outras rotas, manter query params na URL
+              const queryString = urlObj.search;
+              url = `/pagsmile-proxy/${path}${queryString}`;
+              console.log('[Fetch Interceptor] Redirecionando:', urlObj.href, '→', url);
+            }
           }
           
           return originalFetch(url, options);
