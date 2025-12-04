@@ -300,8 +300,9 @@ app.use('/pagsmile-proxy', async (req, res) => {
     console.log('URL de destino:', targetUrl);
     console.log('Body mesclado:', JSON.stringify(requestBody, null, 2));
 
-    // Headers limpos
+    // Headers com Authorization
     const headers = {
+      'Authorization': generateAuthHeader(),
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     };
