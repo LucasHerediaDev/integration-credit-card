@@ -282,23 +282,26 @@ app.use('/pagsmile-proxy', async (req, res) => {
     // Extrai o caminho após /pagsmile-proxy (ex: api/trade/submit-card-pay)
     const path = req.path.substring(1);
     
-    // Mescla query params no body para endpoints POST (especialmente submit-card-pay)
-    let requestBody = req.body || {};
+    console.log('=== Proxy Pagsmile - DEBUG ===');
+    console.log('Método:', req.method);
+    console.log('Caminho original:', req.path);
+    console.log('Query params recebidos:', req.query);
+    console.log('Body recebido:', req.body);
     
-    // Se houver query params, adiciona ao body
-    if (Object.keys(req.query).length > 0) {
+    // Mescla query params no body para endpoints POST
+    let requestBody = { ...(req.body || {}) };
+    
+    // Adiciona query params ao body
+    if (req.query && Object.keys(req.query).length > 0) {
+      console.log('Mesclando query params no body...');
       requestBody = { ...requestBody, ...req.query };
     }
     
     // URL final (SEM query params - tudo vai no body)
     const targetUrl = `${PAGSMILE_CONFIG.GATEWAY_URL}/${path}`;
     
-    console.log('=== Proxy Pagsmile ===');
-    console.log('Método:', req.method);
-    console.log('Caminho original:', req.path);
-    console.log('Caminho extraído:', path);
     console.log('URL de destino:', targetUrl);
-    console.log('Body mesclado:', JSON.stringify(requestBody, null, 2));
+    console.log('Body final mesclado:', JSON.stringify(requestBody, null, 2));
 
     // Headers com Authorization
     const headers = {
