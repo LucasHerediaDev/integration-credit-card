@@ -285,6 +285,7 @@ app.use('/pagsmile-proxy', async (req, res) => {
     console.log('=== Proxy Pagsmile - DEBUG ===');
     console.log('Método:', req.method);
     console.log('Caminho original:', req.path);
+    console.log('Headers recebidos:', JSON.stringify(req.headers, null, 2));
     console.log('Query params recebidos:', req.query);
     console.log('Body recebido:', req.body);
     
@@ -310,6 +311,17 @@ app.use('/pagsmile-proxy', async (req, res) => {
       'Accept': 'application/json'
     };
 
+    // LOG COMPLETO DA REQUISIÇÃO QUE VAI PARA O PAGSMILE
+    console.log('\n========================================');
+    console.log('📤 REQUISIÇÃO COMPLETA PARA PAGSMILE');
+    console.log('========================================');
+    console.log(`${req.method} ${targetUrl}`);
+    console.log('\n--- REQUEST HEADERS ---');
+    console.log(JSON.stringify(headers, null, 2));
+    console.log('\n--- REQUEST BODY ---');
+    console.log(JSON.stringify(requestBody, null, 2));
+    console.log('========================================\n');
+
     // Faz a requisição para o Pagsmile
     const response = await axios({
       method: req.method,
@@ -319,10 +331,16 @@ app.use('/pagsmile-proxy', async (req, res) => {
       validateStatus: () => true // Aceita qualquer status para debug
     });
 
-    console.log('=== Resposta do Pagsmile ===');
-    console.log('Status:', response.status);
-    console.log('Headers:', response.headers);
-    console.log('Data:', JSON.stringify(response.data, null, 2));
+    // LOG COMPLETO DA RESPOSTA DO PAGSMILE
+    console.log('\n========================================');
+    console.log('📥 RESPOSTA COMPLETA DO PAGSMILE');
+    console.log('========================================');
+    console.log(`Status: ${response.status} ${response.statusText || ''}`);
+    console.log('\n--- RESPONSE HEADERS ---');
+    console.log(JSON.stringify(response.headers, null, 2));
+    console.log('\n--- RESPONSE BODY ---');
+    console.log(JSON.stringify(response.data, null, 2));
+    console.log('========================================\n');
 
     // Retorna a resposta do Pagsmile
     res.status(response.status).json(response.data);
