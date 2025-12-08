@@ -1,0 +1,34 @@
+# Node modules
+node_modules
+npm-debug.log
+
+# Git
+.git
+.gitignore
+
+# Documentação
+*.md
+!README.md
+
+# Arquivos de ambiente local
+.env.local
+.env.development
+
+# Arquivos temporários
+*.log
+*.tmp
+.DS_Store
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Vercel
+.vercel
+vercel.json
+
+# Outros
+.cursor
+

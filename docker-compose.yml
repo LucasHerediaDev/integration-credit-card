@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  pagsmile-integration:
+    build: .
+    container_name: pagsmile-credit-card
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Ambiente (prod ou test)
+      - PAGSMILE_ENV=prod
+      
+      # Credenciais Pagsmile (SUBSTITUA COM SUAS CREDENCIAIS REAIS)
+      - PAGSMILE_APP_ID=your_app_id_here
+      - PAGSMILE_SECRET_KEY=your_secret_key_here
+      
+      # Porta
+      - PORT=3000
+      - NODE_ENV=production
+    
+    # Healthcheck para garantir que o container está saudável
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/config"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
