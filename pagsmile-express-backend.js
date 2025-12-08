@@ -32,7 +32,8 @@ const PAGSMILE_CONFIG = {
   GATEWAY_URL: process.env.PAGSMILE_ENV === 'prod' 
     ? 'https://gateway.pagsmile.com' 
     : 'https://gateway-test.pagsmile.com',
-  REGION_CODE: process.env.PAGSMILE_REGION_CODE || 'BRA'
+  REGION_CODE: process.env.PAGSMILE_REGION_CODE || 'BRA',
+  DOMAIN: process.env.DOMAIN || 'http://localhost:3000'
 };
 
 // Função para gerar Authorization header
@@ -65,7 +66,8 @@ app.get('/api/config', (req, res) => {
     app_id: PAGSMILE_CONFIG.APP_ID,
     public_key: PAGSMILE_CONFIG.PUBLIC_KEY,
     env: PAGSMILE_CONFIG.ENV,
-    region_code: PAGSMILE_CONFIG.REGION_CODE
+    region_code: PAGSMILE_CONFIG.REGION_CODE,
+    domain: PAGSMILE_CONFIG.DOMAIN
   });
 });
 
@@ -91,8 +93,8 @@ app.post('/api/create-order', async (req, res) => {
       order_currency: currency,
       subject: 'Pagamento de Produto',
       content: 'Descrição do produto ou serviço',
-      notify_url: `${req.protocol}://${req.get('host')}/api/webhook/payment`,
-      return_url: `${req.protocol}://${req.get('host')}/success`,
+      notify_url: `${PAGSMILE_CONFIG.DOMAIN}/api/webhook/payment`,
+      return_url: `${PAGSMILE_CONFIG.DOMAIN}/success`,
       timestamp: generateTimestamp(),
       timeout_express: '1d',
       version: '2.0',
@@ -527,10 +529,11 @@ app.get('/api/test-credentials', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log('=================================');
+  console.log('=============================================');
   console.log(`✅ Servidor rodando na porta ${PORT}`);
   console.log(`🌍 Ambiente: ${PAGSMILE_CONFIG.ENV}`);
   console.log(`📍 Região: ${PAGSMILE_CONFIG.REGION_CODE}`);
   console.log(`🔗 Gateway: ${PAGSMILE_CONFIG.GATEWAY_URL}`);
-  console.log('=================================');
+  console.log(`🌐 Domínio: ${PAGSMILE_CONFIG.DOMAIN}`);
+  console.log('=============================================');
 });

@@ -46,9 +46,12 @@ git push
    PAGSMILE_ENV=prod
    PAGSMILE_APP_ID=seu_app_id_aqui
    PAGSMILE_SECRET_KEY=sua_secret_key_aqui
+   DOMAIN=https://seudominio.com
    PORT=3000
    NODE_ENV=production
    ```
+   
+   **⚠️ IMPORTANTE:** A variável `DOMAIN` deve ser o domínio completo onde sua aplicação estará rodando (ex: `https://pagsmile.seudominio.com` ou `http://ip-do-servidor:3000`)
 
 5. **Configurar porta:**
    - Container Port: `3000`
