@@ -1243,7 +1243,13 @@
               bodyObj[key] = value;
             });
             
-            console.log('[XHR Interceptor] Body mesclado:', bodyObj);
+            // ✅ MESCLAR dados completos do paymentData armazenado
+            if (window._pagsmilePaymentData) {
+              console.log('[XHR Interceptor] Mesclando dados completos do paymentData');
+              Object.assign(bodyObj, window._pagsmilePaymentData);
+            }
+            
+            console.log('[XHR Interceptor] Body mesclado completo:', bodyObj);
             body = JSON.stringify(bodyObj);
             delete this._queryParamsToMerge;
           }
@@ -1268,6 +1274,14 @@
               params.forEach((value, key) => {
                 bodyObj[key] = value;
               });
+              
+              // ✅ MESCLAR dados completos do paymentData armazenado
+              if (window._pagsmilePaymentData) {
+                console.log('[Fetch Interceptor] Mesclando dados completos do paymentData');
+                Object.assign(bodyObj, window._pagsmilePaymentData);
+              }
+              
+              console.log('[Fetch Interceptor] Body mesclado completo:', bodyObj);
               
               options.body = JSON.stringify(bodyObj);
               options.headers = {
@@ -1328,6 +1342,10 @@
             street: customerInfo.address
           }
         };
+        
+        // ✅ Armazenar paymentData globalmente para os interceptors
+        window._pagsmilePaymentData = paymentData;
+        console.log('[Payment] Dados de pagamento armazenados:', paymentData);
         
         const paymentResult = await clientInstance.createOrder(paymentData);
 

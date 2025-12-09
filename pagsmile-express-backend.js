@@ -358,13 +358,27 @@ app.use('/pagsmile-proxy', async (req, res) => {
     
     // ✅ VALIDAÇÃO: Verificar parâmetros obrigatórios para submit-card-pay
     if (path.includes('submit-card-pay')) {
+      proxyLogger.section('🔍 VALIDAÇÃO DE PARÂMETROS - submit-card-pay');
+      
       const requiredParams = ['prepay_id', 'card_token', 'app_id', 'phone', 'email', 'postal_code', 'payer_id', 'address'];
       const missingParams = requiredParams.filter(param => !requestBody[param]);
+      
+      proxyLogger.info('Parâmetros recebidos', Object.keys(requestBody));
+      proxyLogger.info('Valores dos parâmetros', {
+        prepay_id: requestBody.prepay_id ? '✅' : '❌',
+        card_token: requestBody.card_token ? '✅' : '❌',
+        app_id: requestBody.app_id ? '✅' : '❌',
+        phone: requestBody.phone ? '✅' : '❌',
+        email: requestBody.email ? '✅' : '❌',
+        postal_code: requestBody.postal_code ? '✅' : '❌',
+        payer_id: requestBody.payer_id ? '✅' : '❌',
+        address: requestBody.address ? '✅' : '❌'
+      });
       
       if (missingParams.length > 0) {
         proxyLogger.error('❌ PARÂMETROS OBRIGATÓRIOS FALTANDO', {
           missing: missingParams,
-          received: Object.keys(requestBody)
+          total_missing: missingParams.length
         });
       } else {
         proxyLogger.info('✅ Todos os parâmetros obrigatórios presentes');
@@ -375,15 +389,27 @@ app.use('/pagsmile-proxy', async (req, res) => {
         const requiredAddressFields = ['country_code', 'zip_code', 'state', 'city', 'street'];
         const missingAddressFields = requiredAddressFields.filter(field => !requestBody.address[field]);
         
+        proxyLogger.info('Campos do endereço', {
+          country_code: requestBody.address.country_code ? '✅' : '❌',
+          zip_code: requestBody.address.zip_code ? '✅' : '❌',
+          state: requestBody.address.state ? '✅' : '❌',
+          city: requestBody.address.city ? '✅' : '❌',
+          street: requestBody.address.street ? '✅' : '❌'
+        });
+        
         if (missingAddressFields.length > 0) {
           proxyLogger.error('❌ CAMPOS DO ENDEREÇO FALTANDO', {
             missing: missingAddressFields,
-            received: Object.keys(requestBody.address)
+            total_missing: missingAddressFields.length
           });
         } else {
           proxyLogger.info('✅ Todos os campos do endereço presentes');
         }
+      } else {
+        proxyLogger.error('❌ Objeto address não encontrado no body');
       }
+      
+      proxyLogger.endSection();
     }
 
     // Determina a origem dinamicamente (Vercel ou localhost)
