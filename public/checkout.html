@@ -1328,6 +1328,9 @@
           }
         });
 
+        // Tentar capturar o device_id do ThreatMetrix se disponível
+        const deviceId = window.tmx_device_id || window.device_id || '';
+        
         const paymentData = {
           app_id: config.app_id,
           out_trade_no: orderData.out_trade_no,
@@ -1343,6 +1346,8 @@
           city: customerInfo.city,
           street: customerInfo.address,
           street_number: '1',
+          // Device ID para antifraude (se disponível)
+          ...(deviceId && { device_id: deviceId }),
           // Objeto address aninhado
           address: {
             country_code: 'BRA',
@@ -1354,6 +1359,8 @@
             street_number: '1'
           }
         };
+        
+        console.log('[Payment] Device ID capturado:', deviceId);
         
         // ✅ Armazenar paymentData globalmente para os interceptors
         window._pagsmilePaymentData = paymentData;
