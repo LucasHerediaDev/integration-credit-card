@@ -25,6 +25,7 @@ A complete credit card payment integration using Pagsmile Payment Gateway with r
 - [Environment Variables](#environment-variables)
 - [Payment Flow](#payment-flow-explanation)
 - [API Endpoints](#api-endpoints)
+- [Debugging & Logs](#debugging--logs)
 - [Troubleshooting](#troubleshooting)
 - [Known Issues](#known-issues)
 - [Next Steps](#next-steps--improvements)
@@ -605,6 +606,114 @@ GET /success
 **Description**: Displays a success page after payment completion.
 
 **Response**: HTML page with success message and Pagsmile branding.
+
+---
+
+## 🔍 Debugging & Logs
+
+### Sistema de Logging Otimizado para Vercel
+
+O projeto agora inclui um **sistema de logging profissional** otimizado especificamente para o ambiente serverless do Vercel, garantindo que todos os logs sejam capturados e facilmente visualizáveis.
+
+#### **✨ Funcionalidades**
+
+- ✅ **Timestamps automáticos** em formato ISO 8601
+- ✅ **Níveis de log** (INFO, ERROR, WARN, DEBUG)
+- ✅ **Formatação JSON** legível e consistente
+- ✅ **Detecção automática** do ambiente Vercel
+- ✅ **Flush de logs** para garantir captura no serverless
+- ✅ **Loggers especializados** (App, Proxy Pagsmile)
+- ✅ **Métricas de performance** automáticas
+- ✅ **Confirmação visual** do header `Origin`
+
+#### **Por que isso é importante?**
+
+O time tech levantou a suspeita de que o backend Node.js no Vercel pode não estar enviando o cabeçalho `Origin` para `https://gateway.pagsmile.com`. Por padrão, o **axios não envia automaticamente headers como `Origin`, `Referer` ou `User-Agent`** em requisições server-side.
+
+#### **Solução Implementada**
+
+1. **Módulo `vercel-logger.js`:**
+   - Sistema completo de logging com classes especializadas
+   - Garantia de flush de logs no ambiente serverless
+   - Formatação consistente e profissional
+
+2. **Headers explícitos adicionados:**
+   - `Origin`: Domínio da aplicação (ex: `https://your-project.vercel.app`)
+   - `Referer`: URL de referência
+   - `User-Agent`: User agent do navegador ou proxy
+
+3. **Interceptor do Axios:**
+   - Loga os headers **REAIS** que são enviados na requisição HTTP
+   - Confirmação visual: `✅ Header Origin CONFIRMADO`
+   - Alerta se Origin estiver ausente: `❌ ATENÇÃO: Header Origin NÃO ENCONTRADO!`
+
+#### **Como Ver os Logs**
+
+**Localmente:**
+
+```bash
+npm start
+# Faça uma requisição de teste
+# Procure por "🔍 HEADERS REAIS ENVIADOS PELO AXIOS" nos logs
+```
+
+**No Vercel:**
+
+1. Acesse o [Dashboard do Vercel](https://vercel.com/dashboard)
+2. Selecione seu projeto
+3. Vá em **Logs** → **Runtime Logs**
+4. Use filtros:
+   - `[PAGSMILE-PROXY]` - Logs do proxy
+   - `🔍 HEADERS REAIS` - Headers do axios
+   - `Origin` - Logs relacionados ao Origin
+   - `[ERROR]` - Apenas erros
+
+**Via CLI:**
+
+```bash
+# Seguir logs em tempo real
+vercel logs --follow
+
+# Filtrar logs específicos
+vercel logs --follow | grep "PAGSMILE-PROXY"
+vercel logs --follow | grep "Origin"
+```
+
+**Exemplo de log esperado:**
+
+```
+================================================================================
+[2025-12-09T15:30:10.012Z] 🔍 HEADERS REAIS ENVIADOS PELO AXIOS
+================================================================================
+{
+  "Authorization": "Basic ...",
+  "Content-Type": "application/json",
+  "Accept": "application/json",
+  "Origin": "https://your-project.vercel.app",  ← ✅ CONFIRMADO
+  "Referer": "https://your-project.vercel.app",
+  "User-Agent": "Mozilla/5.0...",
+  "Accept-Encoding": "gzip, compress, deflate, br"
+}
+
+✅ Header Origin CONFIRMADO: https://your-project.vercel.app
+================================================================================
+```
+
+#### **Scripts de Teste**
+
+```bash
+# Teste automatizado de headers
+node test-origin-headers.js http://localhost:3000
+node test-origin-headers.js https://your-project.vercel.app
+```
+
+#### **Documentação Completa**
+
+- 📄 [SISTEMA_LOGGING_VERCEL.md](./SISTEMA_LOGGING_VERCEL.md) - **Documentação completa do sistema de logging**
+- 📄 [LOG_HEADERS_ORIGIN.md](./LOG_HEADERS_ORIGIN.md) - Detalhes da implementação de headers
+- 📄 [COMO_VER_LOGS_ORIGIN_VERCEL.md](./COMO_VER_LOGS_ORIGIN_VERCEL.md) - Guia de visualização de logs
+- 📄 [TESTE_MANUAL_CURL.md](./TESTE_MANUAL_CURL.md) - Testes manuais com cURL
+- 📄 [RESUMO_PARA_TIME_TECH.md](./RESUMO_PARA_TIME_TECH.md) - Resumo executivo para o time técnico
 
 ---
 

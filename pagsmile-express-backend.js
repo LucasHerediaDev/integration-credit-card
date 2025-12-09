@@ -6,7 +6,28 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 require('dotenv').config();
 
+// Sistema de logging otimizado para Vercel
+const { 
+  VercelLogger, 
+  PagsmileProxyLogger, 
+  flushLogs,
+  logVercelEnvironment,
+  isVercel
+} = require('./vercel-logger');
+
 const app = express();
+
+// Loggers
+const logger = new VercelLogger('APP');
+const proxyLogger = new PagsmileProxyLogger();
+
+// Log do ambiente Vercel na inicialização
+logVercelEnvironment();
+logger.info('🚀 Iniciando aplicação...', {
+  isVercel,
+  nodeVersion: process.version,
+  platform: process.platform
+});
 
 // Middleware
 app.use(cors()); // Habilita CORS para todas as rotas
@@ -73,11 +94,17 @@ app.get('/api/config', (req, res) => {
 
 // Rota para criar uma ordem e obter o prepay_id
 app.post('/api/create-order', async (req, res) => {
+  const startTime = Date.now();
+  
   try {
+    logger.event('📝 CREATE ORDER - Iniciando criação de pedido');
+    logger.info('Request body', req.body);
+    
     const { amount, customerInfo } = req.body;
 
     // Gera um ID único para a transação
     const outTradeNo = `ORDER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    logger.info('Order ID gerado', outTradeNo);
 
     // Determina a moeda baseada na região
     let currency = 'BRL'; // Brasil
@@ -118,10 +145,10 @@ app.post('/api/create-order', async (req, res) => {
       }
     };
 
-    console.log('=== Criando ordem no Pagsmile ===');
-    console.log('URL:', `${PAGSMILE_CONFIG.GATEWAY_URL}/trade/create`);
-    console.log('Payload:', JSON.stringify(payload, null, 2));
-    console.log('Authorization:', generateAuthHeader());
+    logger.section('📤 Enviando requisição para Pagsmile /trade/create');
+    logger.info('URL', `${PAGSMILE_CONFIG.GATEWAY_URL}/trade/create`);
+    logger.info('Payload', payload);
+    logger.endSection();
 
     // Faz a requisição para a API do Pagsmile
     const response = await axios.post(
@@ -134,11 +161,23 @@ app.post('/api/create-order', async (req, res) => {
         }
       }
     );
-
-    console.log('=== Resposta do Pagsmile ===');
-    console.log(JSON.stringify(response.data, null, 2));
+    
+    logger.section('📥 Resposta do Pagsmile /trade/create');
+    logger.info('Status', response.status);
+    logger.info('Data', response.data);
+    logger.endSection();
 
     if (response.data.code === '10000') {
+      const duration = Date.now() - startTime;
+      logger.metric('Create Order Duration', duration, 'ms');
+      logger.event('✅ Ordem criada com sucesso', {
+        prepay_id: response.data.prepay_id,
+        trade_no: response.data.trade_no,
+        out_trade_no: outTradeNo
+      });
+      
+      if (isVercel) await flushLogs();
+      
       res.json({
         success: true,
         prepay_id: response.data.prepay_id,
@@ -146,6 +185,15 @@ app.post('/api/create-order', async (req, res) => {
         out_trade_no: outTradeNo
       });
     } else {
+      logger.error('❌ Erro ao criar ordem', {
+        error: response.data.msg,
+        sub_error: response.data.sub_msg,
+        code: response.data.code,
+        sub_code: response.data.sub_code
+      });
+      
+      if (isVercel) await flushLogs();
+      
       res.status(400).json({
         success: false,
         error: response.data.msg || 'Erro ao criar ordem',
@@ -156,10 +204,9 @@ app.post('/api/create-order', async (req, res) => {
     }
 
   } catch (error) {
-    console.error('=== Erro ao criar ordem ===');
-    console.error('Status:', error.response?.status);
-    console.error('Data:', error.response?.data);
-    console.error('Message:', error.message);
+    logger.error('❌ Exceção ao criar ordem', error);
+    
+    if (isVercel) await flushLogs();
     
     res.status(500).json({
       success: false,
@@ -280,78 +327,143 @@ app.post('/api/webhook/payment', async (req, res) => {
 
 // Proxy reverso para todas as requisições do Pagsmile SDK (resolve CORS)
 app.use('/pagsmile-proxy', async (req, res) => {
+  const startTime = Date.now();
+  
   try {
     // Extrai o caminho após /pagsmile-proxy (ex: api/trade/submit-card-pay)
     const path = req.path.substring(1);
     
-    console.log('=== Proxy Pagsmile - DEBUG ===');
-    console.log('Método:', req.method);
-    console.log('Caminho original:', req.path);
-    console.log('Headers recebidos:', JSON.stringify(req.headers, null, 2));
-    console.log('Query params recebidos:', req.query);
-    console.log('Body recebido:', req.body);
+    proxyLogger.section('🔄 PROXY PAGSMILE - INÍCIO');
+    proxyLogger.info('Método', req.method);
+    proxyLogger.info('Caminho original', req.path);
+    proxyLogger.info('Headers recebidos', req.headers);
+    proxyLogger.info('Query params recebidos', req.query);
+    proxyLogger.info('Body recebido', req.body);
+    proxyLogger.endSection();
     
     // Mescla query params no body para endpoints POST
     let requestBody = { ...(req.body || {}) };
     
     // Adiciona query params ao body
     if (req.query && Object.keys(req.query).length > 0) {
-      console.log('Mesclando query params no body...');
+      proxyLogger.info('Mesclando query params no body...');
       requestBody = { ...requestBody, ...req.query };
     }
     
     // URL final (SEM query params - tudo vai no body)
     const targetUrl = `${PAGSMILE_CONFIG.GATEWAY_URL}/${path}`;
     
-    console.log('URL de destino:', targetUrl);
-    console.log('Body final mesclado:', JSON.stringify(requestBody, null, 2));
+    proxyLogger.info('URL de destino', targetUrl);
+    proxyLogger.info('Body final mesclado', requestBody);
 
-    // Headers com Authorization
+    // Determina a origem dinamicamente (Vercel ou localhost)
+    let origin;
+    
+    // 1. Prioridade: usar DOMAIN configurado no .env (se não for localhost)
+    if (PAGSMILE_CONFIG.DOMAIN && !PAGSMILE_CONFIG.DOMAIN.includes('localhost')) {
+      origin = PAGSMILE_CONFIG.DOMAIN;
+    }
+    // 2. Tentar extrair do header Origin da requisição
+    else if (req.headers.origin) {
+      origin = req.headers.origin;
+    }
+    // 3. Tentar extrair do header Referer
+    else if (req.headers.referer) {
+      try {
+        const refererUrl = new URL(req.headers.referer);
+        origin = `${refererUrl.protocol}//${refererUrl.host}`;
+      } catch (e) {
+        origin = req.headers.referer;
+      }
+    }
+    // 4. Construir a partir dos headers do proxy (Vercel)
+    else if (req.headers['x-forwarded-host']) {
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      origin = `${protocol}://${req.headers['x-forwarded-host']}`;
+    }
+    // 5. Fallback: construir a partir do host da requisição
+    else {
+      const protocol = req.protocol || 'http';
+      const host = req.get('host');
+      origin = `${protocol}://${host}`;
+    }
+    
+    proxyLogger.info('🌐 Origin determinado', origin);
+    proxyLogger.info('📋 Origin sources', {
+      configured_domain: PAGSMILE_CONFIG.DOMAIN,
+      header_origin: req.headers.origin,
+      header_referer: req.headers.referer,
+      x_forwarded_proto: req.headers['x-forwarded-proto'],
+      x_forwarded_host: req.headers['x-forwarded-host'],
+      req_protocol: req.protocol,
+      req_host: req.get('host'),
+      final_origin: origin
+    });
+    
+    // Headers com Authorization e Origin explícito
     const headers = {
       'Authorization': generateAuthHeader(),
       'Content-Type': 'application/json',
-      'Accept': 'application/json'
+      'Accept': 'application/json',
+      'Origin': origin, // ✅ Adiciona Origin explicitamente
+      'Referer': origin,
+      'User-Agent': req.headers['user-agent'] || 'Pagsmile-Proxy/1.0'
     };
 
     // LOG COMPLETO DA REQUISIÇÃO QUE VAI PARA O PAGSMILE
-    console.log('\n========================================');
-    console.log('📤 REQUISIÇÃO COMPLETA PARA PAGSMILE');
-    console.log('========================================');
-    console.log(`${req.method} ${targetUrl}`);
-    console.log('\n--- REQUEST HEADERS ---');
-    console.log(JSON.stringify(headers, null, 2));
-    console.log('\n--- REQUEST BODY ---');
-    console.log(JSON.stringify(requestBody, null, 2));
-    console.log('========================================\n');
+    proxyLogger.logPagsmileRequest(req.method, targetUrl, headers, requestBody);
 
-    // Faz a requisição para o Pagsmile
-    const response = await axios({
+    // Configuração do axios com interceptor para logar headers reais
+    const axiosConfig = {
       method: req.method,
       url: targetUrl,
       data: req.method !== 'GET' && req.method !== 'HEAD' ? requestBody : undefined,
       headers: headers,
       validateStatus: () => true // Aceita qualquer status para debug
+    };
+
+    // Interceptor para logar os headers REAIS que o axios envia
+    const axiosInstance = axios.create();
+    axiosInstance.interceptors.request.use(request => {
+      proxyLogger.logAxiosRealHeaders(request.headers);
+      return request;
     });
 
+    // Faz a requisição para o Pagsmile
+    const response = await axiosInstance(axiosConfig);
+
     // LOG COMPLETO DA RESPOSTA DO PAGSMILE
-    console.log('\n========================================');
-    console.log('📥 RESPOSTA COMPLETA DO PAGSMILE');
-    console.log('========================================');
-    console.log(`Status: ${response.status} ${response.statusText || ''}`);
-    console.log('\n--- RESPONSE HEADERS ---');
-    console.log(JSON.stringify(response.headers, null, 2));
-    console.log('\n--- RESPONSE BODY ---');
-    console.log(JSON.stringify(response.data, null, 2));
-    console.log('========================================\n');
+    proxyLogger.logPagsmileResponse(
+      response.status, 
+      response.statusText, 
+      response.headers, 
+      response.data
+    );
+
+    // Métrica de performance
+    const duration = Date.now() - startTime;
+    proxyLogger.metric('Proxy Request Duration', duration, 'ms');
+
+    // Garante que os logs sejam enviados no Vercel antes de retornar
+    if (isVercel) {
+      await flushLogs();
+    }
 
     // Retorna a resposta do Pagsmile
     res.status(response.status).json(response.data);
 
   } catch (error) {
-    console.error('=== Erro no Proxy ===');
-    console.error('Status:', error.response?.status);
-    console.error('Data:', error.response?.data);
-    console.error('Message:', error.message);
+    // Log detalhado do erro
+    proxyLogger.logProxyError(error, 'Erro ao fazer requisição para Pagsmile');
+    
+    // Métrica de performance mesmo em caso de erro
+    const duration = Date.now() - startTime;
+    proxyLogger.metric('Proxy Request Duration (Error)', duration, 'ms');
+    
+    // Garante que os logs de erro sejam enviados no Vercel
+    if (isVercel) {
+      await flushLogs();
+    }
     
     res.status(error.response?.status || 500).json(
       error.response?.data || {
@@ -527,13 +639,37 @@ app.get('/api/test-credentials', (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log('=============================================');
-  console.log(`✅ Servidor rodando na porta ${PORT}`);
-  console.log(`🌍 Ambiente: ${PAGSMILE_CONFIG.ENV}`);
-  console.log(`📍 Região: ${PAGSMILE_CONFIG.REGION_CODE}`);
-  console.log(`🔗 Gateway: ${PAGSMILE_CONFIG.GATEWAY_URL}`);
-  console.log(`🌐 Domínio: ${PAGSMILE_CONFIG.DOMAIN}`);
-  console.log('=============================================');
+// Rota de health check com logging
+app.get('/health', (req, res) => {
+  logger.info('Health check requisitado');
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: {
+      isVercel,
+      env: PAGSMILE_CONFIG.ENV,
+      region: PAGSMILE_CONFIG.REGION_CODE,
+      nodeVersion: process.version
+    }
+  });
 });
+
+const PORT = process.env.PORT || 3000;
+
+// Vercel não usa app.listen(), mas mantemos para desenvolvimento local
+if (!isVercel) {
+  app.listen(PORT, () => {
+    logger.section('🚀 SERVIDOR INICIADO');
+    logger.info('Porta', PORT);
+    logger.info('Ambiente', PAGSMILE_CONFIG.ENV);
+    logger.info('Região', PAGSMILE_CONFIG.REGION_CODE);
+    logger.info('Gateway', PAGSMILE_CONFIG.GATEWAY_URL);
+    logger.info('Domínio', PAGSMILE_CONFIG.DOMAIN);
+    logger.endSection();
+  });
+} else {
+  logger.info('🌐 Rodando no Vercel - Serverless Mode');
+}
+
+// Exporta o app para o Vercel
+module.exports = app;
