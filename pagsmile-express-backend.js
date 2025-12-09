@@ -355,6 +355,7 @@ app.use('/pagsmile-proxy', async (req, res) => {
     
     proxyLogger.info('URL de destino', targetUrl);
     proxyLogger.info('Body final mesclado', requestBody);
+    proxyLogger.info('Path detectado', path);
     
     // ✅ VALIDAÇÃO: Verificar parâmetros obrigatórios para submit-card-pay
     if (path.includes('submit-card-pay')) {

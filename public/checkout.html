@@ -1330,16 +1330,19 @@
 
         const paymentData = {
           app_id: config.app_id, // ✅ OBRIGATÓRIO
+          out_trade_no: orderData.out_trade_no, // ✅ ID da ordem
           phone: customerInfo.phone,
           email: customerInfo.email,
           postal_code: customerInfo.zipCode,
           payer_id: customerInfo.cpf,
+          customer_name: customerInfo.name, // ✅ Nome do cliente
           address: {
             country_code: 'BRA',
             zip_code: customerInfo.zipCode,
             state: customerInfo.state,
             city: customerInfo.city,
-            street: customerInfo.address
+            street: customerInfo.address,
+            street_number: '1' // ✅ Número da rua
           }
         };
         
