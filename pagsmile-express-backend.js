@@ -359,16 +359,19 @@ app.use('/pagsmile-proxy', async (req, res) => {
     // Determina a origem dinamicamente (Vercel ou localhost)
     let origin;
     
-    // 1. Prioridade: usar DOMAIN configurado no .env (se não for localhost)
-    if (PAGSMILE_CONFIG.DOMAIN && !PAGSMILE_CONFIG.DOMAIN.includes('localhost')) {
+    // 1. Prioridade MÁXIMA: Usar o domínio frontend fixo
+    origin = 'https://nextjs.arluck.com.br';
+    
+    // 2. Fallback: usar DOMAIN configurado no .env (se não for localhost)
+    if (!origin && PAGSMILE_CONFIG.DOMAIN && !PAGSMILE_CONFIG.DOMAIN.includes('localhost')) {
       origin = PAGSMILE_CONFIG.DOMAIN;
     }
-    // 2. Tentar extrair do header Origin da requisição
-    else if (req.headers.origin) {
+    // 3. Tentar extrair do header Origin da requisição
+    else if (!origin && req.headers.origin) {
       origin = req.headers.origin;
     }
-    // 3. Tentar extrair do header Referer
-    else if (req.headers.referer) {
+    // 4. Tentar extrair do header Referer
+    else if (!origin && req.headers.referer) {
       try {
         const refererUrl = new URL(req.headers.referer);
         origin = `${refererUrl.protocol}//${refererUrl.host}`;
@@ -376,13 +379,13 @@ app.use('/pagsmile-proxy', async (req, res) => {
         origin = req.headers.referer;
       }
     }
-    // 4. Construir a partir dos headers do proxy (Vercel)
-    else if (req.headers['x-forwarded-host']) {
+    // 5. Construir a partir dos headers do proxy (Vercel)
+    else if (!origin && req.headers['x-forwarded-host']) {
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       origin = `${protocol}://${req.headers['x-forwarded-host']}`;
     }
-    // 5. Fallback: construir a partir do host da requisição
-    else {
+    // 6. Fallback final: construir a partir do host da requisição
+    else if (!origin) {
       const protocol = req.protocol || 'http';
       const host = req.get('host');
       origin = `${protocol}://${host}`;
