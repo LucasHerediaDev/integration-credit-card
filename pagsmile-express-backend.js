@@ -134,7 +134,7 @@ app.post('/api/create-order', async (req, res) => {
         },
         name: customerInfo.name,
         email: customerInfo.email,
-        phone: customerInfo.phone
+        phone: customerInfo.phone.startsWith('55') ? customerInfo.phone : `55${customerInfo.phone}`
       },
       address: {
         zip_code: customerInfo.zipCode,
