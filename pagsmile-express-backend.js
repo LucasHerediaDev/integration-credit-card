@@ -355,6 +355,36 @@ app.use('/pagsmile-proxy', async (req, res) => {
     
     proxyLogger.info('URL de destino', targetUrl);
     proxyLogger.info('Body final mesclado', requestBody);
+    
+    // ✅ VALIDAÇÃO: Verificar parâmetros obrigatórios para submit-card-pay
+    if (path.includes('submit-card-pay')) {
+      const requiredParams = ['prepay_id', 'card_token', 'app_id', 'phone', 'email', 'postal_code', 'payer_id', 'address'];
+      const missingParams = requiredParams.filter(param => !requestBody[param]);
+      
+      if (missingParams.length > 0) {
+        proxyLogger.error('❌ PARÂMETROS OBRIGATÓRIOS FALTANDO', {
+          missing: missingParams,
+          received: Object.keys(requestBody)
+        });
+      } else {
+        proxyLogger.info('✅ Todos os parâmetros obrigatórios presentes');
+      }
+      
+      // Validar campos do endereço
+      if (requestBody.address) {
+        const requiredAddressFields = ['country_code', 'zip_code', 'state', 'city', 'street'];
+        const missingAddressFields = requiredAddressFields.filter(field => !requestBody.address[field]);
+        
+        if (missingAddressFields.length > 0) {
+          proxyLogger.error('❌ CAMPOS DO ENDEREÇO FALTANDO', {
+            missing: missingAddressFields,
+            received: Object.keys(requestBody.address)
+          });
+        } else {
+          proxyLogger.info('✅ Todos os campos do endereço presentes');
+        }
+      }
+    }
 
     // Determina a origem dinamicamente (Vercel ou localhost)
     let origin;

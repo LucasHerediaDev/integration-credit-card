@@ -1315,6 +1315,7 @@
         });
 
         const paymentData = {
+          app_id: config.app_id, // ✅ OBRIGATÓRIO
           phone: customerInfo.phone,
           email: customerInfo.email,
           postal_code: customerInfo.zipCode,
